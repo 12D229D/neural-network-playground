@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Network Playground — Estudio Interactivo de Redes Neuronales</title>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Encabezado Principal -->
+        <header class="app-header">
+            <div class="brand-section">
+                <div class="nn-logo-icon">🧠</div>
+                <div>
+                    <h1>NEURAL NETWORK <span class="gradient-text">PLAYGROUND</span></h1>
+                    <div class="app-subtitle">ESTUDIO VISUAL DE APRENDIZAJE PROFUNDO & FRONTERAS DE DECISIÓN 2D</div>
+                </div>
+            </div>
+
+            <div class="header-presets">
+                <label for="presetSelect">Experimentos:</label>
+                <select id="presetSelect" class="select-input">
+                    <option value="">-- Cargar Experimento Preconfigurado --</option>
+                    <option value="xorProblem">Problema XOR (Mínima Red No Lineal)</option>
+                    <option value="concentricCircles">Círculos Concéntricos con ReLU</option>
+                    <option value="intertwinedSpirals">Espirales Entrelazadas (3 Capas)</option>
+                    <option value="twoMoons">Dos Lunas (Two Moons)</option>
+                    <option value="overfittingVsL2">Sobreajuste vs Regularización L2</option>
+                </select>
+            </div>
+        </header>
+
+        <!-- Barra de Control de Hiperparámetros y Entrenamiento -->
+        <nav class="hyperparameters-bar card-panel" aria-label="Controles de hiperparámetros">
+            <div class="playback-group">
+                <button id="btnPlay" class="btn btn-primary btn-playback">▶ Entrenar</button>
+                <button id="btnStep" class="btn btn-secondary" title="Avanzar un paso (Step-by-step)">⏭ Paso</button>
+                <button id="btnReset" class="btn btn-danger" title="Reiniciar pesos y épocas">↺ Reiniciar</button>
+            </div>
+
+            <div class="metric-counter-badge">
+                <span class="badge-label">Época:</span>
+                <span id="epochCount" class="badge-val">0</span>
+            </div>
+
+            <div class="param-item">
+                <label for="datasetSelect">Dataset 2D:</label>
+                <select id="datasetSelect" class="select-input">
+                    <option value="circles" selected>Círculos Concéntricos</option>
+                    <option value="spirals">Espirales Dobles</option>
+                    <option value="xor">Problema XOR</option>
+                    <option value="two_moons">Dos Lunas (Two Moons)</option>
+                    <option value="clusters">Clusters Gaussianos</option>
+                </select>
+            </div>
+
+            <div class="param-item">
+                <label id="noiseLabel" for="noiseSlider">Ruido: 8%</label>
+                <input type="range" id="noiseSlider" min="0" max="0.3" step="0.02" value="0.08" class="slider-input">
+            </div>
+
+            <div class="param-item">
+                <label for="lrSelect">Learning Rate (α):</label>
+                <select id="lrSelect" class="select-input select-sm">
+                    <option value="0.001">0.001</option>
+                    <option value="0.01">0.01</option>
+                    <option value="0.03" selected>0.03</option>
+                    <option value="0.08">0.08</option>
+                    <option value="0.15">0.15</option>
+                </select>
+            </div>
+
+            <div class="param-item">
+                <label for="actSelect">Activación:</label>
+                <select id="actSelect" class="select-input select-sm">
+                    <option value="tanh" selected>Tanh</option>
+                    <option value="relu">ReLU</option>
+                    <option value="leaky_relu">Leaky ReLU</option>
+                    <option value="sigmoid">Sigmoide</option>
+                    <option value="linear">Lineal</option>
+                </select>
+            </div>
+
+            <div class="param-item">
+                <label for="optSelect">Optimizador:</label>
+                <select id="optSelect" class="select-input select-sm">
+                    <option value="adam" selected>Adam</option>
+                    <option value="momentum">Momentum</option>
+                    <option value="sgd">SGD</option>
+                </select>
+            </div>
+
+            <div class="param-item">
+                <label for="regSelect">Regularización:</label>
+                <select id="regSelect" class="select-input select-sm">
+                    <option value="none" selected>Ninguna</option>
+                    <option value="l2">L2 (Ridge)</option>
+                    <option value="l1">L1 (Lasso)</option>
+                </select>
+            </div>
+        </nav>
+
+        <!-- Contenido Principal: Dual Canvas y Constructor de Topología -->
+        <main class="playground-main-grid">
+            <!-- 1. Columna Izquierda: Fronteras de Decisión 2D -->
+            <section class="card-panel boundary-section">
+                <div class="section-header">
+                    <h2>Frontera de Decisión 2D</h2>
+                    <span class="info-tag">Malla $50 \times 50$ en Tiempo Real</span>
+                </div>
+                <div class="canvas-wrapper">
+                    <canvas id="boundaryCanvas" width="380" height="380"></canvas>
+                </div>
+                <div class="legend-bar">
+                    <div class="legend-item"><span class="dot dot-orange"></span> Clase 0 (Naranja)</div>
+                    <div class="legend-item"><span class="dot dot-cyan"></span> Clase 1 (Cian)</div>
+                    <div class="legend-item"><span class="dot dot-dashed"></span> Datos de Prueba (Test)</div>
+                </div>
+            </section>
+
+            <!-- 2. Columna Central: Arquitectura de la Red y Sinapsis -->
+            <section class="card-panel network-section">
+                <div class="section-header">
+                    <h2>Arquitectura de la Red & Pesos Sinápticos</h2>
+                    <div class="topology-buttons-group">
+                        <button id="btnAddLayer" class="btn btn-secondary btn-sm" title="Añadir capa oculta">+ Capa</button>
+                        <button id="btnRemoveLayer" class="btn btn-secondary btn-sm" title="Eliminar capa oculta">- Capa</button>
+                    </div>
+                </div>
+
+                <!-- Controles por Capa Oculta (Stepper de Neuronas) -->
+                <div class="topology-controls-row" id="topologyControlsContainer">
+                    <!-- Inyectado por app.js -->
+                </div>
+
+                <div class="canvas-wrapper">
+                    <canvas id="networkCanvas" width="520" height="320"></canvas>
+                </div>
+
+                <div class="synapse-legend">
+                    <span style="color: var(--neon-cyan);">━━━ Pesos Positivos (Cian)</span>
+                    <span style="color: var(--neon-orange);">━━━ Pesos Negativos (Naranja)</span>
+                    <span style="color: var(--text-muted); font-size: 0.75rem;">Grosor = Magnitud del Peso | Anillo = Sesgo (Bias)</span>
+                </div>
+            </section>
+
+            <!-- 3. Columna Derecha: Gráfica de Convergencia de Pérdida -->
+            <section class="card-panel loss-section">
+                <div class="section-header">
+                    <h2>Curva de Pérdida & Precisión</h2>
+                    <span class="info-tag">Binary Cross-Entropy</span>
+                </div>
+
+                <div class="canvas-wrapper">
+                    <canvas id="lossCanvas" width="340" height="230"></canvas>
+                </div>
+
+                <div class="metrics-summary-table">
+                    <div class="metric-row">
+                        <span>Pérdida Entrenamiento (Train Loss):</span>
+                        <strong id="trainLossVal" style="color: var(--neon-cyan);">0.0000</strong>
+                    </div>
+                    <div class="metric-row">
+                        <span>Pérdida Prueba (Test Loss):</span>
+                        <strong id="testLossVal" style="color: var(--neon-orange);">0.0000</strong>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>© 2026 Neural Network Playground • Codex Monorepo • Motor de Deep Learning Vanilla JS & Diferenciación Automática</p>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/matrix.js"></script>
+    <script src="js/activations.js"></script>
+    <script src="js/datasets.js"></script>
+    <script src="js/neural-network.js"></script>
+    <script src="js/nn-renderer.js"></script>
+    <script src="js/decision-boundary.js"></script>
+    <script src="js/loss-chart.js"></script>
+    <script src="js/presets.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
